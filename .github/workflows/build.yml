@@ -1,0 +1,42 @@
+name: HD Mariner Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Projekt entpacken
+        run: |
+          unzip -o HD_MARINER_FENIX7PRO_Projekt.zip -d .
+          test -f monkey.jungle
+          mkdir -p out
+
+      - name: Entwicklerschluessel erzeugen
+        run: |
+          openssl genrsa -out /tmp/dev.pem 4096
+          openssl pkcs8 -topk8 -inform PEM -outform DER -in /tmp/dev.pem -out developer_key.der -nocrypt
+
+      - name: Garmin Zifferblatt bauen
+        uses: blackshadev/garmin-connectiq-build-action@9.2.0
+        with:
+          projectJungle: ./monkey.jungle
+          developerKey: ./developer_key.der
+          outputPath: out/HD_MARINER.prg
+          device: fenix7pro
+          typeCheck: '0'
+
+      - name: PRG bereitstellen
+        uses: actions/upload-artifact@v4
+        with:
+          name: HD_MARINER_FENIX7PRO
+          path: out/HD_MARINER.prg
+          if-no-files-found: error
